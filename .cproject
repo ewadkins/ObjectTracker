@@ -27,6 +27,7 @@
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="opencv_highgui"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="opencv_videoio"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="opencv_imgproc"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="opencv_features2d"/>
 								</option>
 								<option id="macosx.cpp.link.option.paths.2001568562" name="Library search path (-L)" superClass="macosx.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/usr/local/lib"/>
