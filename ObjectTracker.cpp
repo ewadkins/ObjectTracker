@@ -23,59 +23,90 @@ void ObjectTracker::run() {
 	cv::Mat edges;
 	cv::namedWindow("Control", CV_WINDOW_AUTOSIZE);
 
+
+	int lastLowH = 0;
+	int lastHighH = 179;
+	int lastLowS = 0;
+	int lastHighS = 255;
+	int lastLowV = 0;
+	int lastHighV = 255;
+
+	cv::Vec3b lastInternalAverage = cv::Vec3b(0, 0, 0);
+	cv::Vec3b lastExternalAverage = cv::Vec3b(255, 255, 255);
+
 	// Initial
-//	int iLowH = 0;
-//	int iHighH = 179;
-//	int iLowS = 0;
-//	int iHighS = 125;
-//	int iLowV = 0;
-//	int iHighV = 255;
+//	int lowH = 0;
+//	int highH = 179;
+//	int lowS = 0;
+//	int highS = 125;
+//	int lowV = 0;
+//	int highV = 255;
 
 	// My face
-//	int iLowH = 0;
-//	int iHighH = 25;
-//	int iLowS = 85;
-//	int iHighS = 135;
-//	int iLowV = 100;
-//	int iHighV = 255;
+//	int lowH = 0;
+//	int highH = 25;
+//	int lowS = 85;
+//	int highS = 135;
+//	int lowV = 100;
+//	int highV = 255;
 
 	// Red button
-//	int iLowH = 0;
-//	int iHighH = 12;
-//	int iLowS = 155;
-//	int iHighS = 225;
-//	int iLowV = 115;
-//	int iHighV = 255;
+//	int lowH = 0;
+//	int highH = 12;
+//	int lowS = 155;
+//	int highS = 225;
+//	int lowV = 115;
+//	int highV = 255;
 
 	// Red ball
-//	int iLowH = 160;
-//	int iHighH = 179;
-//	int iLowS = 85;
-//	int iHighS = 190;
-//	int iLowV = 135;
-//	int iHighV = 250;
+//	int lowH = 160;
+//	int highH = 179;
+//	int lowS = 85;
+//	int highS = 190;
+//	int lowV = 135;
+//	int highV = 250;
 
 	// Green ball
-	int iLowH = 35;
-	int iHighH = 80;
-	int iLowS = 50;
-	int iHighS = 175;
-	int iLowV = 20;
-	int iHighV = 210;
+//	int lowH = 35;
+//	int highH = 80;
+//	int lowS = 50;
+//	int highS = 175;
+//	int lowV = 20;
+//	int highV = 210;
+
+	// Dylan's beard
+//	int lowH = 85;
+//	int highH = 120;
+//	int lowS = 75;
+//	int highS = 235;
+//	int lowV = 0;
+//	int highV = 50;
+
+	// Peanutbutter lid
+	int lowH = 95;
+	int highH = 110;
+	int lowS = 90;
+	int highS = 220;
+	int lowV = 150;
+	int highV = 225;
 
 
 	bool displayOriginal = true;
 
-	cvCreateTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
-	cvCreateTrackbar("HighH", "Control", &iHighH, 179);
+	/*
+	cvCreateTrackbar("LowH", "Control", &lowH, 179); //Hue (0 - 179)
+	cvCreateTrackbar("HighH", "Control", &highH, 179);
 
-	cvCreateTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
-	cvCreateTrackbar("HighS", "Control", &iHighS, 255);
+	cvCreateTrackbar("LowS", "Control", &lowS, 255); //Saturation (0 - 255)
+	cvCreateTrackbar("HighS", "Control", &highS, 255);
 
-	cvCreateTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
-	cvCreateTrackbar("HighV", "Control", &iHighV, 255);
+	cvCreateTrackbar("LowV", "Control", &lowV, 255); //Value (0 - 255)
+	cvCreateTrackbar("HighV", "Control", &highV, 255);
+	*/
 
-	int state = TRACKING;
+	int state = SEARCHING;
+	int trainingState = 0;
+	int step = 1;
 
 	cv::Mat imgOriginal;
 	cv::Mat imgTraining;
@@ -110,7 +141,7 @@ void ObjectTracker::run() {
 		cv::Mat imgGray;
 		cvtColor(imgOriginal, imgGray, CV_BGR2GRAY);
 
-		cv::Mat imgThresholded = thresholdedImg(imgOriginal, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), true);
+		cv::Mat imgThresholded = thresholdedImg(imgOriginal, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), true);
 
 		cv::Mat imgCircle = cv::Mat::zeros( imgOriginal.size(), CV_8UC3 );
 
@@ -167,7 +198,7 @@ void ObjectTracker::run() {
 			imgDisplay = imgOriginal + imgCircle;
 			break;
 		case (TRAINING):
-			imgThresholded = thresholdedImg(imgTraining, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), false);
+			imgThresholded = thresholdedImg(imgTraining, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), false);
 			imgDisplay = imgThresholded;
 			//imgDisplay = imgTraining;
 			break;
@@ -178,20 +209,19 @@ void ObjectTracker::run() {
 
 		std::ostringstream os;
 
-		os << "H: (" << iLowH << " - " << iHighH << ")";
+		os << "H: (" << lowH << " - " << highH << ")";
 		cv::putText(imgDisplay, os.str(), cv::Point(40, 50),
 		    cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255, 255, 255), 2, 8);
 
 		os.str("");
-		os << "S: (" << iLowS << " - " << iHighS << ")";
+		os << "S: (" << lowS << " - " << highS << ")";
 		cv::putText(imgDisplay, os.str(), cv::Point(40, 70),
 		    cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255, 255, 255), 2, 8);
 
 		os.str("");
-		os << "V: (" << iLowV << " - " << iHighV << ")";
+		os << "V: (" << lowV << " - " << highV << ")";
 		cv::putText(imgDisplay, os.str(), cv::Point(40, 90),
 		    cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255, 255, 255), 2, 8);
-
 
 		imshow("Object Tracker", imgDisplay);
 
@@ -209,10 +239,14 @@ void ObjectTracker::run() {
 			        	uchar g = imgThresholded.data[imgThresholded.channels()*(imgThresholded.cols*y + x) + 1];
 			        	uchar r = imgThresholded.data[imgThresholded.channels()*(imgThresholded.cols*y + x) + 2];
 			        	//std::cout << b << " " << g << " " << r << std::endl;
-			        	internalAverage[0] += r;
-			        	internalAverage[1] += g;
-			        	internalAverage[2] += b;
+			        	//internalAverage[0] += r;
+			        	//internalAverage[1] += g;
+			        	//internalAverage[2] += b;
+			        	internalAverage[0] += color[0];
+			        	internalAverage[1] += color[1];
+			        	internalAverage[2] += color[2];
 			        	internalCount++;
+
 			        	//imgTraining.at<cv::Vec3b>(x, y) = cv::Vec3b((test) % 255, (test * 2) % 255, (test * 3) % 255);
 						//test += 1;
 			        }
@@ -224,7 +258,7 @@ void ObjectTracker::run() {
 			        }
 			    }
 			}
-			std::cout << "Internal: " << internalAverage[0] << ", External: " << externalAverage[0] << std::endl;
+			//std::cout << "Internal: " << internalAverage[0] << ", External: " << externalAverage[0] << std::endl;
 			internalAverage[0] /= internalCount;
 			internalAverage[1] /= internalCount;
 			internalAverage[2] /= internalCount;
@@ -235,7 +269,99 @@ void ObjectTracker::run() {
 			cv::Vec3b internal = cv::Vec3b(internalAverage[0], internalAverage[1], internalAverage[2]);
 			cv::Vec3b external = cv::Vec3b(externalAverage[0], externalAverage[1], externalAverage[2]);
 
-			std::cout << "Internal: " << internal << ", External: " << external << std::endl;
+			//std::cout << "Internal: " << internal << ", External: " << external << std::endl;
+
+			/*double internalDistance = sqrt(pow(internal[0] - lastInternalAverage[0], 2)
+					 + pow(internal[1] - lastInternalAverage[1], 2)
+					 + pow(internal[2] - lastInternalAverage[2], 2));*/
+			double internalAbsoluteChange = ((double) internal[0] - lastInternalAverage[0] + internal[1] - lastInternalAverage[1] + internal[2] - lastInternalAverage[2]) / 3;
+			double externalAbsoluteChange = ((double) external[0] - lastExternalAverage[0] + external[1] - lastExternalAverage[1] + external[2] - lastExternalAverage[2]) / 3;
+			//double internalPercentChange = (double) (internal[0] - lastInternalAverage[0]) / internal[0];
+			//double externalPercentChange = (double) (external[0] - lastExternalAverage[0]) / external[0];
+
+			if (lastLowH != lowH || lastHighH != highH || lastLowS != lowS || lastHighS != highS || lastLowV != lowV || lastHighV != highV) {
+				/*std::cout << "Training state: " << trainingState << std::endl;
+				//std::cout << "Internal percent change: " << internalPercentChange << std::endl;
+				//std::cout << "External percent change: " << externalPercentChange << std::endl;
+				std::cout << "Internal absolute change: " << internalAbsoluteChange << std::endl;
+				std::cout << "External absolute change: " << externalAbsoluteChange << std::endl;
+				std::cout << "New internal: " << internal << ", Old internal: " << lastInternalAverage << std::endl;
+				std::cout << "New external: " << external << ", Old external: " << lastExternalAverage << std::endl;*/
+			}
+			if (trainingState > 12) {
+				state = TRACKING;
+			}
+			//else if ((trainingState % 2 == 1 && (internalPercentChange > -0.2 || lastInternalAverage[0] > 120)) || (trainingState % 2 == 0 && (internalPercentChange > -0.2 || lastInternalAverage[0] > 120))) {
+			else if ((internalAbsoluteChange >= 0 && externalAbsoluteChange >= 0
+					&& internalAbsoluteChange >= externalAbsoluteChange)
+					//&& internalAbsoluteChange - externalAbsoluteChange >= -1)
+					|| (internalAbsoluteChange >= 0 && externalAbsoluteChange <= 0)
+					|| (internalAbsoluteChange <= 0 && externalAbsoluteChange <= 0
+							&& internalAbsoluteChange >= externalAbsoluteChange)) {
+				lastInternalAverage = internal;
+				lastExternalAverage = external;
+				lastLowH = lowH;
+				lastHighH = highH;
+				lastLowS = lowS;
+				lastHighS = highS;
+				lastLowV = lowV;
+				lastHighV = highV;
+
+				if (trainingState == 1) {
+					lowH = std::max(0, lowH - step);
+				}
+				else if (trainingState == 2) {
+					highH = std::min(179, highH + step);
+				}
+				else if (trainingState == 3) {
+					lowS = std::max(0, lowS - step);
+				}
+				else if (trainingState == 4) {
+					highS = std::min(255, highS + step);
+				}
+				else if (trainingState == 5) {
+					lowV = std::max(0, lowV - step);
+				}
+				else if (trainingState == 6) {
+					highV = std::min(255, highV + step);
+				}
+				else if (trainingState == 7) {
+					lowH = std::max(0, lowH + step);
+				}
+				else if (trainingState == 8) {
+					highH = std::min(179, highH - step);
+				}
+				else if (trainingState == 9) {
+					lowS = std::max(0, lowS + step);
+				}
+				else if (trainingState == 10) {
+					highS = std::min(255, highS - step);
+				}
+				else if (trainingState == 11) {
+					lowV = std::max(0, lowV + step);
+				}
+				else if (trainingState == 12) {
+					highV = std::min(255, highV - step);
+				}
+
+				if (lastLowH == lowH && lastHighH == highH && lastLowS == lowS && lastHighS == highS && lastLowV == lowV && lastHighV == highV) {
+					trainingState += 1;
+				}
+			}
+			else if (step < 10) {
+				lowH = lastLowH;
+				highH = lastHighH;
+				lowS = lastLowS;
+				highS = lastHighS;
+				lowV = lastLowV;
+				highV = lastHighV;
+				step++;
+			}
+			else {
+				step = 1;
+				trainingState += 1;
+			}
+
 		}
 
 		int key = cv::waitKey(1);
@@ -250,6 +376,14 @@ void ObjectTracker::run() {
 		else if (key == 116) { // t
 			if (state == SEARCHING) {
 				state = TRAINING;
+				trainingState = 1;
+
+				lowH = 0;
+				highH = 179;
+				lowS = 0;
+				highS = 255;
+				lowV = 0;
+				highV = 255;
 
 				std::vector<double> average = std::vector<double>(3);
 				int count = 0;
@@ -270,6 +404,26 @@ void ObjectTracker::run() {
 				average[2] /= count;
 
 				imgTraining = cv::Mat(imgOriginal);
+				cv::Vec3b hsv = RGBtoHSV(average[0], average[1], average[2]);
+				int rangeH = 20;
+				int rangeS = 20;
+				int rangeV = 20;
+				lowH = std::max(0, hsv[0] - rangeH);
+				highH = std::min(179, hsv[0] + rangeH);
+				lowS = std::max(0, hsv[1] - rangeS);
+				highS = std::min(255, hsv[1] + rangeS);
+				lowV = std::max(0, hsv[2] - rangeV);
+				highV = std::min(255, hsv[2] + rangeV);
+
+				cvCreateTrackbar("LowH", "Control", &lowH, 179); //Hue (0 - 179)
+				cvCreateTrackbar("HighH", "Control", &highH, 179);
+
+				cvCreateTrackbar("LowS", "Control", &lowS, 255); //Saturation (0 - 255)
+				cvCreateTrackbar("HighS", "Control", &highS, 255);
+
+				cvCreateTrackbar("LowV", "Control", &lowV, 255); //Value (0 - 255)
+				cvCreateTrackbar("HighV", "Control", &highV, 255);
+
 				/*for (int x = 0; x < imgTraining.rows; x++) {
 				    for (int y = 0; y < imgTraining.cols; y++) {
 				        double dist = sqrt((y - lastCenter.x) * (y - lastCenter.x) + (x - lastCenter.y) * (x - lastCenter.y));
@@ -310,5 +464,53 @@ cv::Mat ObjectTracker::thresholdedImg(cv::Mat original, cv::Scalar lowHSV, cv::S
 		erode(imgThresholded, imgThresholded, getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)) );
 	}
 
+	cv::GaussianBlur(imgThresholded, imgThresholded, cv::Size(51, 51), 0);
+
+	/*for (int x = 0; x < imgThresholded.rows; x++) {
+	    for (int y = 0; y < imgThresholded.cols; y++) {
+	        cv::Vec3b &color = imgThresholded.at<cv::Vec3b>(x, y);
+	        if (color[0] > 127) {
+	        	color = cv::Vec3b(255, 255, 255);
+	        }
+	        else {
+	        	color = cv::Vec3b(255, 255, 255);
+	        }
+	    }
+	}*/
+
 	return imgThresholded;
 }
+
+cv::Vec3b ObjectTracker::RGBtoHSV(float r, float g, float b) {
+	float h, s, v, min, max, delta;
+	r /= 255;
+	g /= 255;
+	b /= 255;
+	min = std::min(std::min(r, g), b);
+	max = std::max(std::max(r, g), b);
+	v = max;
+	delta = max - min;
+	if (max != 0) {
+		s = delta / max;
+	}
+	else {
+		s = 0;
+		h = 0;
+		return cv::Vec3b(h, s, v * 255);
+	}
+	if (r == max) {
+		h = (g - b) / delta;
+	}
+	else if (g == max) {
+		h = 2 + (b - r) / delta;
+	}
+	else {
+		h = 4 + (r - g) / delta;
+	}
+	h *= 60;
+	if (h < 0) {
+		h += 360;
+	}
+	return cv::Vec3b(h / 2, s * 255, v * 255);
+}
+

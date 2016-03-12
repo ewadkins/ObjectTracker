@@ -24,6 +24,7 @@ public:
 	static void run();
 private:
 	static cv::Mat thresholdedImg(cv::Mat original, cv::Scalar lowHSV, cv::Scalar highHSV, bool removeNoise);
+	static cv::Vec3b RGBtoHSV(float r, float g, float b);
 };
 
 #endif /* OBJECTTRACKER_H_ */
