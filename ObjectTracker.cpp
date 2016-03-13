@@ -106,7 +106,8 @@ void ObjectTracker::run() {
 
 	int state = SEARCHING;
 	int trainingState = 0;
-	int step = 1;
+	int initialStep = 2;
+	int step = initialStep;
 
 	cv::Mat imgOriginal;
 	cv::Mat imgTraining;
@@ -123,10 +124,6 @@ void ObjectTracker::run() {
 	//Create a black image with the size as the camera output
 	cv::Mat imgLines = cv::Mat::zeros(imgTmp.size(), CV_8UC3);
 
-
-	int test = 0;
-
-
 	while(true) {
 
 		if (state != TRAINING) {
@@ -141,12 +138,12 @@ void ObjectTracker::run() {
 		cv::Mat imgGray;
 		cvtColor(imgOriginal, imgGray, CV_BGR2GRAY);
 
-		cv::Mat imgThresholded = thresholdedImg(imgOriginal, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), true);
+		cv::Mat imgThresholded = thresholdedImg(imgOriginal, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), true, false);
 
 		cv::Mat imgCircle = cv::Mat::zeros( imgOriginal.size(), CV_8UC3 );
 
 		if (state == TRAINING) {
-			cv::circle(imgCircle, cv::Point(lastCenter.x, lastCenter.y), lastRadius, cv::Scalar(255, 0, 0), 3, 8);
+			cv::circle(imgCircle, lastCenter, lastRadius, cv::Scalar(0, 255, 0), 3, 8);
 		}
 
 		if (state == TRACKING) {
@@ -181,10 +178,7 @@ void ObjectTracker::run() {
 		    for( size_t i = 0; i < circles.size(); i++ ) {
 		         cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
 		         int radius = cvRound(circles[i][2]);
-		         //std::cout << center << std::endl << radius << std::endl;
-		         // draw the circle center
 		         cv::circle(imgCircle, center, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
-		         // draw the circle outline
 		         cv::circle(imgCircle, center, radius, cv::Scalar(0, 0, 255), 3, 8, 0);
 		         lastCenter = center;
 		         lastRadius = radius;
@@ -198,9 +192,10 @@ void ObjectTracker::run() {
 			imgDisplay = imgOriginal + imgCircle;
 			break;
 		case (TRAINING):
-			imgThresholded = thresholdedImg(imgTraining, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), false);
+			imgThresholded = thresholdedImg(imgTraining, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), false, true);
 			imgDisplay = imgThresholded;
 			//imgDisplay = imgTraining;
+			imgDisplay += imgCircle;
 			break;
 		case (TRACKING):
 			imgDisplay = displayOriginal ? imgOriginal + imgCircle + imgLines : imgThresholded;
@@ -235,20 +230,10 @@ void ObjectTracker::run() {
 			        double dist = sqrt((y - lastCenter.x) * (y - lastCenter.x) + (x - lastCenter.y) * (x - lastCenter.y));
 		        	cv::Vec3b color = imgThresholded.at<cv::Vec3b>(x, y);
 			        if (dist < lastRadius) {
-			        	uchar b = imgThresholded.data[imgThresholded.channels()*(imgThresholded.cols*y + x) + 0];
-			        	uchar g = imgThresholded.data[imgThresholded.channels()*(imgThresholded.cols*y + x) + 1];
-			        	uchar r = imgThresholded.data[imgThresholded.channels()*(imgThresholded.cols*y + x) + 2];
-			        	//std::cout << b << " " << g << " " << r << std::endl;
-			        	//internalAverage[0] += r;
-			        	//internalAverage[1] += g;
-			        	//internalAverage[2] += b;
 			        	internalAverage[0] += color[0];
 			        	internalAverage[1] += color[1];
 			        	internalAverage[2] += color[2];
 			        	internalCount++;
-
-			        	//imgTraining.at<cv::Vec3b>(x, y) = cv::Vec3b((test) % 255, (test * 2) % 255, (test * 3) % 255);
-						//test += 1;
 			        }
 			        else {
 			        	externalAverage[0] += color[0];
@@ -258,7 +243,6 @@ void ObjectTracker::run() {
 			        }
 			    }
 			}
-			//std::cout << "Internal: " << internalAverage[0] << ", External: " << externalAverage[0] << std::endl;
 			internalAverage[0] /= internalCount;
 			internalAverage[1] /= internalCount;
 			internalAverage[2] /= internalCount;
@@ -269,11 +253,6 @@ void ObjectTracker::run() {
 			cv::Vec3b internal = cv::Vec3b(internalAverage[0], internalAverage[1], internalAverage[2]);
 			cv::Vec3b external = cv::Vec3b(externalAverage[0], externalAverage[1], externalAverage[2]);
 
-			//std::cout << "Internal: " << internal << ", External: " << external << std::endl;
-
-			/*double internalDistance = sqrt(pow(internal[0] - lastInternalAverage[0], 2)
-					 + pow(internal[1] - lastInternalAverage[1], 2)
-					 + pow(internal[2] - lastInternalAverage[2], 2));*/
 			double internalAbsoluteChange = ((double) internal[0] - lastInternalAverage[0] + internal[1] - lastInternalAverage[1] + internal[2] - lastInternalAverage[2]) / 3;
 			double externalAbsoluteChange = ((double) external[0] - lastExternalAverage[0] + external[1] - lastExternalAverage[1] + external[2] - lastExternalAverage[2]) / 3;
 			//double internalPercentChange = (double) (internal[0] - lastInternalAverage[0]) / internal[0];
@@ -291,10 +270,8 @@ void ObjectTracker::run() {
 			if (trainingState > 12) {
 				state = TRACKING;
 			}
-			//else if ((trainingState % 2 == 1 && (internalPercentChange > -0.2 || lastInternalAverage[0] > 120)) || (trainingState % 2 == 0 && (internalPercentChange > -0.2 || lastInternalAverage[0] > 120))) {
 			else if ((internalAbsoluteChange >= 0 && externalAbsoluteChange >= 0
 					&& internalAbsoluteChange >= externalAbsoluteChange)
-					//&& internalAbsoluteChange - externalAbsoluteChange >= -1)
 					|| (internalAbsoluteChange >= 0 && externalAbsoluteChange <= 0)
 					|| (internalAbsoluteChange <= 0 && externalAbsoluteChange <= 0
 							&& internalAbsoluteChange >= externalAbsoluteChange)) {
@@ -348,7 +325,7 @@ void ObjectTracker::run() {
 					trainingState += 1;
 				}
 			}
-			else if (step < 10) {
+			else if (step < 6) {
 				lowH = lastLowH;
 				highH = lastHighH;
 				lowS = lastLowS;
@@ -358,7 +335,7 @@ void ObjectTracker::run() {
 				step++;
 			}
 			else {
-				step = 1;
+				step = initialStep;
 				trainingState += 1;
 			}
 
@@ -384,6 +361,16 @@ void ObjectTracker::run() {
 				highS = 255;
 				lowV = 0;
 				highV = 255;
+
+				lastLowH = 0;
+				lastHighH = 179;
+				lastLowS = 0;
+				lastHighS = 255;
+				lastLowV = 0;
+				lastHighV = 255;
+
+				lastInternalAverage = cv::Vec3b(0, 0, 0);
+				lastExternalAverage = cv::Vec3b(255, 255, 255);
 
 				std::vector<double> average = std::vector<double>(3);
 				int count = 0;
@@ -447,7 +434,7 @@ void ObjectTracker::run() {
 
 }
 
-cv::Mat ObjectTracker::thresholdedImg(cv::Mat original, cv::Scalar lowHSV, cv::Scalar highHSV, bool removeNoise) {
+cv::Mat ObjectTracker::thresholdedImg(cv::Mat original, cv::Scalar lowHSV, cv::Scalar highHSV, bool removeNoise, bool convertBackToRGB) {
 	cv::Mat imgHSV;
 	cvtColor(original, imgHSV, cv::COLOR_BGR2HSV);
 
@@ -465,6 +452,10 @@ cv::Mat ObjectTracker::thresholdedImg(cv::Mat original, cv::Scalar lowHSV, cv::S
 	}
 
 	cv::GaussianBlur(imgThresholded, imgThresholded, cv::Size(51, 51), 0);
+
+	if (convertBackToRGB) {
+		cvtColor(imgThresholded, imgThresholded, cv::COLOR_GRAY2RGB);
+	}
 
 	/*for (int x = 0; x < imgThresholded.rows; x++) {
 	    for (int y = 0; y < imgThresholded.cols; y++) {
