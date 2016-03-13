@@ -143,7 +143,9 @@ void ObjectTracker::run() {
 		cv::Mat imgCircle = cv::Mat::zeros( imgOriginal.size(), CV_8UC3 );
 
 		if (state == TRAINING) {
-			cv::circle(imgCircle, lastCenter, lastRadius, cv::Scalar(0, 255, 0), 3, 8);
+			double progress = (double) lastInternalAverage[0];
+			//double progress = (double) trainingState * 255 / 12;
+			cv::circle(imgCircle, lastCenter, lastRadius, cv::Scalar(0, progress, 255 - progress), 3, 8);
 		}
 
 		if (state == TRACKING) {
@@ -303,22 +305,22 @@ void ObjectTracker::run() {
 					highV = std::min(255, highV + step);
 				}
 				else if (trainingState == 7) {
-					lowH = std::max(0, lowH + step);
+					lowH = std::min(179, lowH + step);
 				}
 				else if (trainingState == 8) {
-					highH = std::min(179, highH - step);
+					highH = std::max(0, highH - step);
 				}
 				else if (trainingState == 9) {
-					lowS = std::max(0, lowS + step);
+					lowS = std::min(255, lowS + step);
 				}
 				else if (trainingState == 10) {
-					highS = std::min(255, highS - step);
+					highS = std::max(0, highS - step);
 				}
 				else if (trainingState == 11) {
-					lowV = std::max(0, lowV + step);
+					lowV = std::min(255, lowV + step);
 				}
 				else if (trainingState == 12) {
-					highV = std::min(255, highV - step);
+					highV = std::max(0, highV - step);
 				}
 
 				if (lastLowH == lowH && lastHighH == highH && lastLowS == lowS && lastHighS == highS && lastLowV == lowV && lastHighV == highV) {
