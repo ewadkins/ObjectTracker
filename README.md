@@ -1,2 +1,2 @@
 # ObjectTracker
-An object recognition tool using OpenCV.
+An object recognition and tracker tool using OpenCV.
